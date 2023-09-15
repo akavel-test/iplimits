@@ -61,11 +61,11 @@ func renderFilter() string {
 		IP:   testIP,
 		Rate: "100 kbytes/second",
 	})
-	fmt.Printf("[[\n%s\n]]\n", buf.String())
-	// if err != nil {
-	// FIXME: panic
-	panic(fmt.Sprintf("failed to render filter template: %v", err))
-	// }
+	// fmt.Printf("[[\n%s\n]]\n", buf.String())
+	if err != nil {
+		// FIXME: panic
+		panic(fmt.Sprintf("failed to render filter template: %v", err))
+	}
 	return buf.String()
 }
 
