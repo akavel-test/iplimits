@@ -1,16 +1,14 @@
-# see also: `nft -a list ruleset`
+# see also: `nft -a list ruleset`, `nft -f FILE`
 
 		table ip akavel_iplimits {
-			# 100 kBps
-			limit lim_over_100kbps { rate over 100 kbytes/second ; }
 			chain OUT {
 				type filter hook output priority filter; policy accept;
-				ip daddr 80.249.99.148 limit name "lim_over_100kbps" drop
+				ip daddr 80.249.99.148 limit rate over 100 kbytes/second drop
 			}
 
 			chain IN {
 				type filter hook input priority filter; policy accept;
-				ip saddr 80.249.99.148 limit name "lim_over_100kbps" drop
+				ip saddr 80.249.99.148 limit rate over 100 kbytes/second drop
 			}
 		}
 
