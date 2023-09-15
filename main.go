@@ -16,13 +16,29 @@ func main() {
 	// FIXME[LATER]: ideally, print both above if both are failed, then exit
 	// FIXME[LATER]: godoc
 	// FIXME[LATER]: gofmt, govet, go test; golint missing docs
+	// FIXME[LATER]: --help
 
-	setLimit()
-	// TODO: if os.Args[1] == 'purge' { purge_all_limits() } - see if it works
+	if len(os.Args) > 1 && os.Args[1] == "purge" {
+		purgeLimits()
+	} else {
+		setLimit()
+	}
 	// TODO: pretty flags for adding limits - try to implement them incrementally:
 	// - variable IP
 	// - variable packets OR bandwidth limit
 }
+
+func purgeLimits() {
+	cmd := exec.Command("nft", "delete", "table", tableName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: purging limits failed: error running nft: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: nft command output:\n%s", string(out))
+		os.Exit(1)
+	}
+}
+
+const tableName = "akavel_iplimits"
 
 func setLimit() {
 	cmd := exec.Command("nft", "-f-")
