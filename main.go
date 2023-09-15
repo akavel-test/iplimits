@@ -1,6 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
 
 const testIP = "80.249.99.148"
 
@@ -12,11 +17,22 @@ func main() {
 	// FIXME[LATER]: godoc
 	// FIXME[LATER]: gofmt, govet, go test; golint missing docs
 
-	// TODO: write code to set limit from Go - see if it works
+	setLimit()
 	// TODO: if os.Args[1] == 'purge' { purge_all_limits() } - see if it works
 	// TODO: pretty flags for adding limits - try to implement them incrementally:
 	// - variable IP
 	// - variable packets OR bandwidth limit
+}
+
+func setLimit() {
+	cmd := exec.Command("nft", "-f-")
+	cmd.Stdin = strings.NewReader(filterText)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: setting limit failed: error running nft: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: nft command output:\n%s", string(out))
+		os.Exit(1)
+	}
 }
 
 // FIXME[LATER]: godoc
