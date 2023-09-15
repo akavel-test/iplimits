@@ -2,11 +2,15 @@
 
 		table ip akavel_iplimits {
 			# 100 kBps
-			limit lim_over_100kbps { rate over 100 kbytes / second ; }
+			limit lim_over_100kbps { rate over 100 kbytes/second ; }
 			chain OUT {
 				type filter hook output priority filter; policy accept;
-
 				ip daddr 80.249.99.148 limit name "lim_over_100kbps" drop
+			}
+
+			chain IN {
+				type filter hook input priority filter; policy accept;
+				ip saddr 80.249.99.148 limit name "lim_over_100kbps" drop
 			}
 		}
 
