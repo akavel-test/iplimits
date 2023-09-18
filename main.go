@@ -194,9 +194,9 @@ var rateUnitMap = map[string]string{
 // nftables format.
 //
 // See also:
-// - https://wiki.nftables.org/wiki-nftables/index.php/Limits
-// - https://www.netfilter.org/projects/nftables/manpage.html
-// - `nft -a list ruleset`, `nft -f FILE`, `nft delete table NAME`
+//   - https://wiki.nftables.org/wiki-nftables/index.php/Limits
+//   - https://www.netfilter.org/projects/nftables/manpage.html
+//   - `nft -a list ruleset`, `nft -f FILE`, `nft delete table NAME`
 const filterTmpl = `
 	table ip {{.Name}} {
 		chain OUT {
