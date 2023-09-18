@@ -7,12 +7,13 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
 const usage = `Usage:
 	iplimits purge
-	iplimits add IP
+	iplimits add IP LIMIT pps|bps|kbps|mbps
 `
 
 func main() {
@@ -59,9 +60,12 @@ func purgeLimits() {
 const tableName = "akavel_iplimits"
 
 func addLimit(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("missing IP parameter\n%s", usage)
+	// Verify number of arguments
+	if len(args) < 3 {
+		return fmt.Errorf("not enough arguments to 'iplimits add'\n%s", usage)
 	}
+
+	// Parse arg 0 - IP
 	ip, err := netip.ParseAddr(args[0])
 	if err != nil {
 		return fmt.Errorf("bad IP parameter: %w", err)
@@ -69,6 +73,13 @@ func addLimit(args []string) error {
 	if !ip.Is4() {
 		return fmt.Errorf("bad IP parameter: must be IPv4")
 	}
+
+	// Parse arg 1 - limit value (without unit)
+	limit, err := strconv.ParseUint(args[1], 10, 32)
+	if err != nil {
+		return fmt.Errorf("bad LIMIT parameter: %w", err)
+	}
+	_ = limit
 
 	cmd := exec.Command("nft", "-f-")
 	cmd.Stdin = strings.NewReader(renderFilter(filterVars{
