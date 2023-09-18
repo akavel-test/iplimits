@@ -10,12 +10,14 @@ previously set by the tool.
 For the tool to work correctly:
 
   - it must be run with root/superuser privileges;
-  - the `nft` CLI tool must be installed and available in $PATH;
-  - the Go compiler toolchain must be installed and available in $PATH.
+  - the `nft` CLI tool must be installed and available in $PATH.
 
 ## Installation
 
-To install, run the following command:
+As a prerequisite, the Go compiler toolchain must be installed and available in
+$PATH.
+
+To install the tool, run the following command:
 
 	go install github.com/akavel-test/iplimits@latest
 
