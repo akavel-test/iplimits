@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"net/netip"
 	"os"
 	"os/exec"
 	"strings"
 )
 
-const testIP = "80.249.99.148"
+var testIP = netip.MustParseAddr("80.249.99.148")
 
 func main() {
 	fmt.Println("hello iplimits")
@@ -71,7 +72,7 @@ func renderFilter() string {
 
 type filterVars struct {
 	Name string
-	IP   string // FIXME[LATER]: use netip.Addr ?
+	IP   netip.Addr
 	Rate string // FIXME[LATER]: split?
 }
 
