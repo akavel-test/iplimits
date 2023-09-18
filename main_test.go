@@ -1,13 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"net/netip"
+	"strings"
 	"testing"
 
 	"github.com/kylelemons/godebug/diff"
 )
 
-func TestRenderFilter_Full(t *testing.T) {
+func TestRenderFilter(t *testing.T) {
 	want := `
 	table ip akavel_iplimits {
 		chain OUT {
@@ -21,7 +23,7 @@ func TestRenderFilter_Full(t *testing.T) {
 		}
 	}
 `
-	have := renderFilter(filterVars{
+	have := renderFilter(filterArgs{
 		IP:        netip.MustParseAddr("1.2.3.4"),
 		RateValue: 2,
 		RateUnit:  rateUnitMap["mbps"],
@@ -29,5 +31,27 @@ func TestRenderFilter_Full(t *testing.T) {
 	diff := diff.Diff(have, want)
 	if diff != "" {
 		t.Error(diff)
+	}
+}
+
+func TestParseAddLimitArgs_Invalid(t *testing.T) {
+	type args []string
+	tests := []struct {
+		args          args
+		wantErrPrefix string
+	}{
+		{
+			args:          args{},
+			wantErrPrefix: "not enough arguments",
+		},
+	}
+
+	for _, tt := range tests {
+		_, err := parseAddLimitArgs(tt.args)
+		errText := fmt.Sprintf("%s", err)
+		if !strings.HasPrefix(errText, tt.wantErrPrefix) {
+			t.Errorf("%q: bad error:\nwant: %s...\nhave: %s",
+				tt.args, tt.wantErrPrefix, errText)
+		}
 	}
 }

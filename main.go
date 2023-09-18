@@ -33,7 +33,12 @@ func main() {
 	case "purge":
 		err = purgeLimits()
 	case "add":
-		err = addLimit(os.Args[2:])
+		var args filterArgs
+		args, err = parseAddLimitArgs(os.Args[2:])
+		if err != nil {
+			break
+		}
+		err = addLimit(args)
 	default:
 		err = fmt.Errorf("unknown command %q\n%s", cmd, usage)
 	}
@@ -61,40 +66,46 @@ func purgeLimits() error {
 	return nil
 }
 
-func addLimit(args []string) error {
+func parseAddLimitArgs(args []string) (filterArgs, error) {
+	type res = filterArgs
+
 	// Verify number of arguments
 	if len(args) < 3 {
-		return fmt.Errorf("not enough arguments to 'iplimits add'\n%s", usage)
+		return res{}, fmt.Errorf("not enough arguments to 'iplimits add'\n%s", usage)
 	}
 
 	// Parse arg 0 - IP
 	ip, err := netip.ParseAddr(args[0])
 	if err != nil {
-		return fmt.Errorf("bad IP parameter: %w", err)
+		return res{}, fmt.Errorf("bad IP parameter: %w", err)
 	}
 	if !ip.Is4() {
-		return fmt.Errorf("bad IP parameter: must be IPv4")
+		return res{}, fmt.Errorf("bad IP parameter: must be IPv4")
 	}
 
 	// Parse arg 1 - limit value (without unit)
 	rawLimit, err := strconv.ParseUint(args[1], 10, 32)
 	if err != nil {
-		return fmt.Errorf("bad LIMIT parameter: %w", err)
+		return res{}, fmt.Errorf("bad LIMIT parameter: %w", err)
 	}
 	limit := uint32(rawLimit)
 
 	// Parse arg 2 - limit unit
 	unit := rateUnitMap[args[2]]
 	if unit == "" {
-		return fmt.Errorf("bad limit unit %q", unit)
+		return res{}, fmt.Errorf("bad limit unit %q", unit)
 	}
 
-	cmd := exec.Command(nft, "-f-")
-	cmd.Stdin = strings.NewReader(renderFilter(filterVars{
+	return filterArgs{
 		IP:        ip,
 		RateValue: limit,
 		RateUnit:  unit,
-	}))
+	}, nil
+}
+
+func addLimit(args filterArgs) error {
+	cmd := exec.Command(nft, "-f-")
+	cmd.Stdin = strings.NewReader(renderFilter(args))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: setting limit failed: error running nft: %v\n", err)
@@ -105,7 +116,7 @@ func addLimit(args []string) error {
 	return nil
 }
 
-func renderFilter(vars filterVars) string {
+func renderFilter(vars filterArgs) string {
 	vars.Name = tableName
 	tmpl := template.Must(template.New("filter").Parse(filterTmpl))
 	buf := bytes.NewBuffer(nil)
@@ -118,7 +129,7 @@ func renderFilter(vars filterVars) string {
 	return buf.String()
 }
 
-type filterVars struct {
+type filterArgs struct {
 	Name      string
 	IP        netip.Addr
 	RateValue uint32
