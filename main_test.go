@@ -52,6 +52,22 @@ func TestParseAddLimitArgs_Invalid(t *testing.T) {
 			args:          args{"1.2.3.4", "100"},
 			wantErrPrefix: "not enough arguments",
 		},
+		{
+			args:          args{"1.2.3.4:8080", "100", "kbps"},
+			wantErrPrefix: "bad IP parameter",
+		},
+		{
+			args:          args{"10:10::10", "100", "kbps"},
+			wantErrPrefix: "bad IP parameter: must be IPv4",
+		},
+		{
+			args:          args{"1.2.3.4", "12e3", "kbps"},
+			wantErrPrefix: "bad LIMIT parameter",
+		},
+		{
+			args:          args{"1.2.3.4", "120", "kBps"},
+			wantErrPrefix: "bad limit unit",
+		},
 	}
 
 	for _, tt := range tests {
