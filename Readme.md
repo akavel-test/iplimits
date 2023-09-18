@@ -1,11 +1,11 @@
 
-iplimits is a simple tool for managing per-IP firewall limits in nftables.
+**iplimits** is a simple tool for managing per-IP firewall limits in nftables.
 
 iplimits is a simplified CLI interface for the `nft` Linux CLI tool.
 It allows adding per-IP transfer rate limits, and clearing any limits
 previously set by the tool.
 
-# Requirements
+## Requirements
 
 For the tool to work correctly:
 
@@ -13,13 +13,13 @@ For the tool to work correctly:
   - the `nft` CLI tool must be installed and available in $PATH;
   - the Go compiler toolchain must be installed and available in $PATH.
 
-# Installation
+## Installation
 
 To install, run the following command:
 
 	go install github.com/akavel/homework230913@latest
 
-# Usage
+## Usage
 
 	iplimits purge
 		Clears all limits previously added by iplimits.
