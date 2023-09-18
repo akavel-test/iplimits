@@ -31,26 +31,29 @@ func main() {
 	var err error
 	switch cmd {
 	case "purge":
-		purgeLimits()
+		err = purgeLimits()
 	case "add":
 		err = addLimit(os.Args[2:])
 	default:
 		err = fmt.Errorf("unknown command %q\n%s", cmd, usage)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s", err)
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
 	}
 }
 
-func purgeLimits() {
+func purgeLimits() error {
 	cmd := exec.Command("nft", "delete", "table", tableName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: purging limits failed: error running nft: %v\n", err)
-		fmt.Fprintf(os.Stderr, "error: nft command output:\n%s", string(out))
-		os.Exit(1)
+		details := ""
+		if len(out) > 0 {
+			details = fmt.Sprintf("; output:\n%s", string(out))
+		}
+		return fmt.Errorf("purging limits failed: error running nft: %w%s", err, details)
 	}
+	return nil
 }
 
 const tableName = "akavel_iplimits"
