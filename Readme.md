@@ -17,7 +17,7 @@ For the tool to work correctly:
 
 To install, run the following command:
 
-	go install github.com/akavel/iplimits@latest
+	go install github.com/akavel-test/iplimits@latest
 
 ## Usage
 

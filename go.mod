@@ -1,4 +1,4 @@
-module github.com/akavel/iplimits
+module github.com/akavel-test/iplimits
 
 go 1.20
 
