@@ -40,6 +40,7 @@ func TestParseAddLimitArgs_Invalid(t *testing.T) {
 		args          args
 		wantErrPrefix string
 	}{
+		// # of args
 		{
 			args:          args{},
 			wantErrPrefix: "not enough arguments",
@@ -52,18 +53,34 @@ func TestParseAddLimitArgs_Invalid(t *testing.T) {
 			args:          args{"1.2.3.4", "100"},
 			wantErrPrefix: "not enough arguments",
 		},
+		// IP parameter
 		{
 			args:          args{"1.2.3.4:8080", "100", "kbps"},
+			wantErrPrefix: "bad IP parameter",
+		},
+		{
+			args:          args{"256.256.256.256", "100", "kbps"},
 			wantErrPrefix: "bad IP parameter",
 		},
 		{
 			args:          args{"10:10::10", "100", "kbps"},
 			wantErrPrefix: "bad IP parameter: must be IPv4",
 		},
+		// LIMIT parameter
 		{
 			args:          args{"1.2.3.4", "12e3", "kbps"},
 			wantErrPrefix: "bad LIMIT parameter",
 		},
+		{
+			args:          args{"1.2.3.4", "-1", "bps"},
+			wantErrPrefix: "bad LIMIT parameter",
+		},
+		{
+			// uint32 max + 1
+			args:          args{"1.2.3.4", "4294967296", "bps"},
+			wantErrPrefix: `bad LIMIT parameter: strconv.ParseUint: parsing "4294967296": value out of range`,
+		},
+		// LIMIT unit
 		{
 			args:          args{"1.2.3.4", "120", "kBps"},
 			wantErrPrefix: "bad limit unit",
@@ -87,6 +104,7 @@ func TestParseAddLimitArgs_OK(t *testing.T) {
 		want filterArgs
 	}{
 		{
+			// kbps
 			args: args{"1.2.3.4", "100", "kbps"},
 			want: filterArgs{
 				IP:        netip.MustParseAddr("1.2.3.4"),
@@ -95,11 +113,32 @@ func TestParseAddLimitArgs_OK(t *testing.T) {
 			},
 		},
 		{
+			// IP max values
+			// mbps
+			args: args{"255.255.255.255", "1", "mbps"},
+			want: filterArgs{
+				IP:        netip.MustParseAddr("255.255.255.255"),
+				RateValue: 1,
+				RateUnit:  " mbytes/second",
+			},
+		},
+		{
+			// pps
 			args: args{"255.255.255.255", "1", "pps"},
 			want: filterArgs{
 				IP:        netip.MustParseAddr("255.255.255.255"),
 				RateValue: 1,
 				RateUnit:  "/second",
+			},
+		},
+		{
+			// limit = uint32 max
+			// bps
+			args: args{"127.0.0.1", "4294967295", "bps"},
+			want: filterArgs{
+				IP:        netip.MustParseAddr("127.0.0.1"),
+				RateValue: 4_294_967_295,
+				RateUnit:  " bytes/second",
 			},
 		},
 	}
