@@ -41,10 +41,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %s", err)
 		os.Exit(1)
 	}
-
-	// TODO: pretty flags for adding limits - try to implement them incrementally:
-	// - variable IP
-	// - variable packets OR bandwidth limit
 }
 
 func purgeLimits() {
@@ -75,15 +71,23 @@ func addLimit(args []string) error {
 	}
 
 	// Parse arg 1 - limit value (without unit)
-	limit, err := strconv.ParseUint(args[1], 10, 32)
+	rawLimit, err := strconv.ParseUint(args[1], 10, 32)
 	if err != nil {
 		return fmt.Errorf("bad LIMIT parameter: %w", err)
 	}
-	_ = limit
+	limit := uint32(rawLimit)
+
+	// Parse arg 2 - limit unit
+	unit := rateUnitMap[args[2]]
+	if unit == "" {
+		return fmt.Errorf("bad limit unit %q", unit)
+	}
 
 	cmd := exec.Command("nft", "-f-")
 	cmd.Stdin = strings.NewReader(renderFilter(filterVars{
-		IP: ip,
+		IP:        ip,
+		RateValue: limit,
+		RateUnit:  unit,
 	}))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -97,7 +101,6 @@ func addLimit(args []string) error {
 
 func renderFilter(vars filterVars) string {
 	vars.Name = tableName
-	vars.Rate = "100 kbytes/second"
 	tmpl := template.Must(template.New("filter").Parse(filterTmpl))
 	buf := bytes.NewBuffer(nil)
 	err := tmpl.Execute(buf, vars)
@@ -110,9 +113,17 @@ func renderFilter(vars filterVars) string {
 }
 
 type filterVars struct {
-	Name string
-	IP   netip.Addr
-	Rate string // FIXME[LATER]: split?
+	Name      string
+	IP        netip.Addr
+	RateValue uint32
+	RateUnit  string
+}
+
+var rateUnitMap = map[string]string{
+	"pps":  "/second",
+	"bps":  " bytes/second",
+	"kbps": " kbytes/second",
+	"mbps": " mbytes/second",
 }
 
 // FIXME[LATER]: godoc
@@ -124,12 +135,12 @@ const filterTmpl = `
 	table ip {{.Name}} {
 		chain OUT {
 			type filter hook output priority filter; policy accept;
-			ip daddr {{.IP}} limit rate over {{.Rate}} drop
+			ip daddr {{.IP}} limit rate over {{.RateValue}}{{.RateUnit}} drop
 		}
 
 		chain IN {
 			type filter hook input priority filter; policy accept;
-			ip saddr {{.IP}} limit rate over {{.Rate}} drop
+			ip saddr {{.IP}} limit rate over {{.RateValue}}{{.RateUnit}} drop
 		}
 	}
 `
