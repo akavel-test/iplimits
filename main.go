@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-var testIP = netip.MustParseAddr("80.249.99.148")
-
 const usage = `Usage:
 	iplimits purge
 	iplimits add IP
@@ -25,17 +23,21 @@ func main() {
 	// FIXME[LATER]: gofmt, govet, go test; golint missing docs
 	// FIXME[LATER]: --help
 
-	var cmd = ""
+	cmd := ""
 	if len(os.Args) > 1 {
 		cmd = os.Args[1]
 	}
+	var err error
 	switch cmd {
 	case "purge":
 		purgeLimits()
 	case "add":
-		addLimit()
+		err = addLimit(os.Args[2:])
 	default:
-		fmt.Fprintf(os.Stderr, "error: unknown command %q\n%s", cmd, usage)
+		err = fmt.Errorf("unknown command %q\n%s", cmd, usage)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err)
 		os.Exit(1)
 	}
 
@@ -56,25 +58,38 @@ func purgeLimits() {
 
 const tableName = "akavel_iplimits"
 
-func addLimit() {
+func addLimit(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("missing IP parameter\n%s", usage)
+	}
+	ip, err := netip.ParseAddr(args[0])
+	if err != nil {
+		return fmt.Errorf("bad IP parameter: %w", err)
+	}
+	if !ip.Is4() {
+		return fmt.Errorf("bad IP parameter: must be IPv4")
+	}
+
 	cmd := exec.Command("nft", "-f-")
-	cmd.Stdin = strings.NewReader(renderFilter())
+	cmd.Stdin = strings.NewReader(renderFilter(filterVars{
+		IP: ip,
+	}))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: setting limit failed: error running nft: %v\n", err)
 		fmt.Fprintf(os.Stderr, "error: nft command output:\n%s", string(out))
 		os.Exit(1)
 	}
+
+	return nil
 }
 
-func renderFilter() string {
+func renderFilter(vars filterVars) string {
+	vars.Name = tableName
+	vars.Rate = "100 kbytes/second"
 	tmpl := template.Must(template.New("filter").Parse(filterTmpl))
 	buf := bytes.NewBuffer(nil)
-	err := tmpl.Execute(buf, filterVars{
-		Name: tableName,
-		IP:   testIP,
-		Rate: "100 kbytes/second",
-	})
+	err := tmpl.Execute(buf, vars)
 	// fmt.Printf("[[\n%s\n]]\n", buf.String())
 	if err != nil {
 		// FIXME: panic
