@@ -43,8 +43,13 @@ func main() {
 	}
 }
 
+const (
+	tableName = "akavel_iplimits"
+	nft       = "nft"
+)
+
 func purgeLimits() error {
-	cmd := exec.Command("nft", "delete", "table", tableName)
+	cmd := exec.Command(nft, "delete", "table", tableName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		details := ""
@@ -55,8 +60,6 @@ func purgeLimits() error {
 	}
 	return nil
 }
-
-const tableName = "akavel_iplimits"
 
 func addLimit(args []string) error {
 	// Verify number of arguments
@@ -86,7 +89,7 @@ func addLimit(args []string) error {
 		return fmt.Errorf("bad limit unit %q", unit)
 	}
 
-	cmd := exec.Command("nft", "-f-")
+	cmd := exec.Command(nft, "-f-")
 	cmd.Stdin = strings.NewReader(renderFilter(filterVars{
 		IP:        ip,
 		RateValue: limit,
