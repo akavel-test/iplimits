@@ -12,8 +12,12 @@ import (
 
 var testIP = netip.MustParseAddr("80.249.99.148")
 
+const usage = `Usage:
+	iplimits purge
+	iplimits add IP
+`
+
 func main() {
-	fmt.Println("hello iplimits")
 	// FIXME[LATER]: check if `nft` command exists, else write installation note
 	// FIXME[LATER]: check if we're root
 	// FIXME[LATER]: ideally, print both above if both are failed, then exit
@@ -21,11 +25,20 @@ func main() {
 	// FIXME[LATER]: gofmt, govet, go test; golint missing docs
 	// FIXME[LATER]: --help
 
-	if len(os.Args) > 1 && os.Args[1] == "purge" {
-		purgeLimits()
-	} else {
-		setLimit()
+	var cmd = ""
+	if len(os.Args) > 1 {
+		cmd = os.Args[1]
 	}
+	switch cmd {
+	case "purge":
+		purgeLimits()
+	case "add":
+		addLimit()
+	default:
+		fmt.Fprintf(os.Stderr, "error: unknown command %q\n%s", cmd, usage)
+		os.Exit(1)
+	}
+
 	// TODO: pretty flags for adding limits - try to implement them incrementally:
 	// - variable IP
 	// - variable packets OR bandwidth limit
@@ -43,7 +56,7 @@ func purgeLimits() {
 
 const tableName = "akavel_iplimits"
 
-func setLimit() {
+func addLimit() {
 	cmd := exec.Command("nft", "-f-")
 	cmd.Stdin = strings.NewReader(renderFilter())
 	out, err := cmd.CombinedOutput()
