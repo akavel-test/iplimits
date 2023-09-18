@@ -83,17 +83,23 @@ func TestParseAddLimitArgs_Invalid(t *testing.T) {
 func TestParseAddLimitArgs_OK(t *testing.T) {
 	type args []string
 	tests := []struct {
-		comment string
-		args    args
-		want    filterArgs
+		args args
+		want filterArgs
 	}{
 		{
-			comment: "",
-			args:    args{"1.2.3.4", "100", "kbps"},
+			args: args{"1.2.3.4", "100", "kbps"},
 			want: filterArgs{
 				IP:        netip.MustParseAddr("1.2.3.4"),
 				RateValue: 100,
 				RateUnit:  " kbytes/second",
+			},
+		},
+		{
+			args: args{"255.255.255.255", "1", "pps"},
+			want: filterArgs{
+				IP:        netip.MustParseAddr("255.255.255.255"),
+				RateValue: 1,
+				RateUnit:  "/second",
 			},
 		},
 	}
