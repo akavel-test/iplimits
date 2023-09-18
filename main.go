@@ -54,19 +54,15 @@ const usage = `Usage:
 `
 
 func main() {
-	// FIXME[LATER]: check if `nft` command exists, else write installation note
-	// FIXME[LATER]: check if we're root
-	// FIXME[LATER]: ideally, print both above if both are failed, then exit
-	// FIXME[LATER]: godoc
-	// FIXME[LATER]: gofmt, govet, go test; golint missing docs
-	// FIXME[LATER]: --help
-
-	cmd := ""
+	// We expect to be called with a subcommand.
+	subcmd := ""
 	if len(os.Args) > 1 {
-		cmd = os.Args[1]
+		subcmd = os.Args[1]
 	}
+
+	// Depending on the subcommand, call a different helper function.
 	var err error
-	switch cmd {
+	switch subcmd {
 	case "purge":
 		err = purgeLimits()
 	case "add":
@@ -77,8 +73,10 @@ func main() {
 		}
 		err = addLimit(args)
 	default:
-		err = fmt.Errorf("unknown command %q\n%s", cmd, usage)
+		err = fmt.Errorf("unknown command %q\n%s", subcmd, usage)
 	}
+
+	// Print any error.
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
@@ -86,10 +84,13 @@ func main() {
 }
 
 const (
+	// Name of the nftables CLI we use to actually set up the limits.
+	nft = "nft"
+	// Name of a nftables table we'll store our rules in.
 	tableName = "akavel_iplimits"
-	nft       = "nft"
 )
 
+// purgeLimits deletes all the rules previously stored in nftables via our CLI.
 func purgeLimits() error {
 	cmd := exec.Command(nft, "delete", "table", tableName)
 	out, err := cmd.CombinedOutput()
@@ -103,6 +104,8 @@ func purgeLimits() error {
 	return nil
 }
 
+// parseAddLimitArgs parses a list of CLI arguments to the `add` subcommand of
+// our CLI.
 func parseAddLimitArgs(args []string) (filterArgs, error) {
 	type res = filterArgs
 
@@ -140,6 +143,7 @@ func parseAddLimitArgs(args []string) (filterArgs, error) {
 	}, nil
 }
 
+// addLimit adds a new limit into nftables rules.
 func addLimit(args filterArgs) error {
 	cmd := exec.Command(nft, "-f-")
 	cmd.Stdin = strings.NewReader(renderFilter(args))
@@ -153,6 +157,8 @@ func addLimit(args filterArgs) error {
 	return nil
 }
 
+// renderFilter inserts values from the filterArgs parameter into the
+// filterTmpl template.
 func renderFilter(vars filterArgs) string {
 	vars.Name = tableName
 	tmpl := template.Must(template.New("filter").Parse(filterTmpl))
@@ -160,12 +166,14 @@ func renderFilter(vars filterArgs) string {
 	err := tmpl.Execute(buf, vars)
 	// fmt.Printf("[[\n%s\n]]\n", buf.String())
 	if err != nil {
-		// FIXME: panic
+		// We don't expect this to happen, and it would be a logic error if it
+		// does, so we let ourselves use a panic here.
 		panic(fmt.Sprintf("failed to render filter template: %v", err))
 	}
 	return buf.String()
 }
 
+// filterArgs contains arguments for the filterTmpl template.
 type filterArgs struct {
 	Name      string
 	IP        netip.Addr
@@ -173,6 +181,8 @@ type filterArgs struct {
 	RateUnit  string
 }
 
+// rateUnitMap contains a mapping from units passed as arguments to our CLI, to
+// units required by nftables rules format.
 var rateUnitMap = map[string]string{
 	"pps":  "/second",
 	"bps":  " bytes/second",
@@ -180,7 +190,9 @@ var rateUnitMap = map[string]string{
 	"mbps": " mbytes/second",
 }
 
-// FIXME[LATER]: godoc
+// filterTmpl contains a template defining filtering rules for a single IP in
+// nftables format.
+//
 // See also:
 // - https://wiki.nftables.org/wiki-nftables/index.php/Limits
 // - https://www.netfilter.org/projects/nftables/manpage.html
